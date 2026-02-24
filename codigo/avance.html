@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte Gerencial - TECSUR</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="datos_gantt.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #020617; color: #f1f5f9; font-family: 'Inter', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+        
+        /* GANTT STYLES - EL ALMA */
+        .gantt-grid { 
+            display: grid; 
+            grid-template-columns: 380px repeat(11, 1fr); 
+            gap: 1px; 
+            background: #1e293b; 
+            border-radius: 20px; 
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        .header-cell { background: #0f172a; padding: 16px; text-align: center; font-size: 11px; font-weight: 900; color: #94a3b8; border-bottom: 2px solid #1e293b; }
+        .name-cell { background: #0f172a; padding: 18px 20px; font-size: 12px; font-weight: 700; display: flex; align-items: center; border-bottom: 1px solid #1e293b; color: #e2e8f0; }
+        .week-cell { background: #020617; border-bottom: 1px solid #1e293b; position: relative; min-height: 65px; }
+        
+        .full-bar {
+            position: absolute; top: 18px; height: 30px; 
+            background: linear-gradient(90deg, #4f46e5 0%, #a855f7 100%);
+            border-radius: 30px; z-index: 10; display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 900; color: white; border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.4);
+        }
+
+        .chart-container { height: 350px; width: 100%; }
+    </style>
+</head>
+<body class="p-6 md:p-12">
+
+    <div class="max-w-[1750px] mx-auto space-y-10">
+        
+        <header class="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-slate-800 pb-8">
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="h-3 w-3 bg-indigo-500 rounded-full animate-pulse"></div>
+                    <span class="text-indigo-400 font-black tracking-[0.2em] text-xs uppercase">Tecsur S.A. - Control de Proyectos</span>
+                </div>
+                <h1 id="proyecto-titulo" class="text-4xl font-black text-white italic tracking-tighter max-w-5xl"></h1>
+                <div class="flex gap-8 text-xs font-bold uppercase tracking-widest text-slate-500">
+                    <div>Inicio: <span id="fecha-inicio" class="text-slate-200"></span></div>
+                    <div>Entrega: <span id="fecha-entrega" class="text-rose-500"></span></div>
+                </div>
+            </div>
+            <div class="text-right">
+                <span class="text-[10px] font-black text-slate-500 uppercase">Avance Real Semana 4</span>
+                <div id="global-perc" class="text-7xl font-black text-white leading-none">0%</div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass p-6 rounded-[2rem] border-l-8 border-indigo-600">
+                <span class="text-[10px] font-black text-slate-500 uppercase">Postes Totales (MT+BT)</span>
+                <div class="flex justify-between items-baseline mt-2">
+                    <span id="postes-total-perc" class="text-5xl font-black text-white">0%</span>
+                    <span id="postes-total-det" class="text-xs font-bold text-slate-400"></span>
+                </div>
+            </div>
+            <div class="glass p-6 rounded-[2rem] border-l-8 border-blue-500">
+                <span class="text-[10px] font-black text-slate-500 uppercase">Postes Media Tensión</span>
+                <div class="flex justify-between items-baseline mt-2">
+                    <span id="mt-perc" class="text-5xl font-black text-white">0%</span>
+                    <span id="mt-det" class="text-xs font-bold text-slate-400"></span>
+                </div>
+            </div>
+            <div class="glass p-6 rounded-[2rem] border-l-8 border-emerald-500">
+                <span class="text-[10px] font-black text-slate-500 uppercase">Postes Baja Tensión</span>
+                <div class="flex justify-between items-baseline mt-2">
+                    <span id="bt-perc" class="text-5xl font-black text-white">0%</span>
+                    <span id="bt-det" class="text-xs font-bold text-slate-400"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <h3 class="text-sm font-black text-indigo-400 uppercase tracking-[0.3em]">Cronograma de Ejecución Real</h3>
+            <div class="overflow-x-auto p-1 bg-slate-900 rounded-[2rem] border border-slate-800">
+                <div class="gantt-grid" id="gantt-board">
+                    <div class="header-cell">DESCRIPCIÓN DE ACTIVIDADES</div>
+                    <div class="header-cell">S1</div><div class="header-cell">S2</div><div class="header-cell">S3</div><div class="header-cell text-indigo-500 bg-indigo-500/10">S4</div>
+                    <div class="header-cell">S5</div><div class="header-cell">S6</div><div class="header-cell">S7</div><div class="header-cell">S8</div>
+                    <div class="header-cell">S9</div><div class="header-cell">S10</div><div class="header-cell">S11</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="glass p-8 rounded-[2rem] space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Análisis de Cumplimiento (Curva S)</h3>
+                    <div class="flex gap-4 text-[10px] font-bold">
+                        <div class="flex items-center gap-1"><span class="h-2 w-2 bg-slate-600 rounded-full"></span> PROYECTADO</div>
+                        <div class="flex items-center gap-1"><span class="h-2 w-2 bg-indigo-500 rounded-full"></span> REAL</div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="chartCurvaS"></canvas>
+                </div>
+            </div>
+
+            <div class="glass rounded-[2rem] overflow-hidden">
+                <div class="p-6 bg-slate-900/50 border-b border-slate-800">
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">Resumen de Productividad Semanal</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-[11px]">
+                        <thead class="bg-slate-950 text-slate-500 uppercase font-black">
+                            <tr>
+                                <th class="p-4">Actividad</th>
+                                <th class="p-4 text-center">S1</th><th class="p-4 text-center">S2</th><th class="p-4 text-center">S3</th><th class="p-4 text-center bg-indigo-500/10 text-white">S4</th>
+                                <th class="p-4 text-right">Total CZ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            if (typeof dataProyecto !== 'undefined') {
+                const d = dataProyecto;
+                document.getElementById('proyecto-titulo').innerText = d.proyecto;
+                document.getElementById('fecha-inicio').innerText = d.inicio_obra;
+                document.getElementById('fecha-entrega').innerText = d.entrega_obra;
+                document.getElementById('global-perc').innerText = d.avance_global + "%";
+                
+                document.getElementById('postes-total-perc').innerText = d.postes_total.progreso + "%";
+                document.getElementById('postes-total-det').innerText = d.postes_total.detalle;
+                document.getElementById('mt-perc').innerText = d.postes_mt.progreso + "%";
+                document.getElementById('mt-det').innerText = d.postes_mt.detalle;
+                document.getElementById('bt-perc').innerText = d.postes_bt.progreso + "%";
+                document.getElementById('bt-det').innerText = d.postes_bt.detalle;
+
+                // CHART CURVA S
+                const ctx = document.getElementById('chartCurvaS').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: d.curva_s.map(i => i.sem),
+                        datasets: [
+                            { label: 'Proyectado Acum.', data: d.curva_s.map(i => i.proy_ac), borderColor: '#334155', borderDash: [5,5], fill: false, tension: 0.4 },
+                            { label: 'Real Acumulado', data: d.curva_s.map(i => i.real_ac > 0 ? i.real_ac : null), borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', fill: true, tension: 0.4, borderWidth: 4, pointBackgroundColor: '#6366f1' }
+                        ]
+                    },
+                    options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#1e293b' }, ticks: { color: '#64748b' } }, x: { grid: { display: false }, ticks: { color: '#64748b' } } } }
+                });
+
+                // GANTT BOARD
+                const board = document.getElementById('gantt-board');
+                const table = document.getElementById('table-body');
+                d.tareas.forEach(t => {
+                    const n = document.createElement('div'); n.className = 'name-cell'; n.innerText = t.name;
+                    board.appendChild(n);
+                    for (let s = 0; s < 11; s++) {
+                        const c = document.createElement('div'); c.className = 'week-cell';
+                        if (t.inicio !== -1 && s === t.inicio) {
+                            const num = (t.fin - t.inicio) + 1;
+                            const bar = document.createElement('div'); bar.className = 'full-bar';
+                            bar.style.width = `calc(${num * 100}% + ${num - 1}px - 14px)`;
+                            bar.innerText = t.total + "%";
+                            c.appendChild(bar);
+                        }
+                        board.appendChild(c);
+                    }
+                    // TABLE
+                    let semHTML = t.historial.map((v, i) => i < 4 ? `<td class="p-4 text-center ${v>0?'text-white font-bold':'text-slate-800'}">${v>0?v+'%':'-'}</td>` : '').join('');
+                    table.innerHTML += `<tr class="hover:bg-slate-800/40"><td class="p-4 font-bold text-slate-300 uppercase">${t.name}</td>${semHTML}<td class="p-4 text-right font-black text-indigo-400 text-sm">${t.total}%</td></tr>`;
+                });
+            }
+        };
+    </script>
+</body>
+</html>
